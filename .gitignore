@@ -1,0 +1,52 @@
+HELP.md
+target/
+.mvn/wrapper/maven-wrapper.jar
+!**/src/main/**/target/
+!**/src/test/**/target/
+
+### STS ###
+.apt_generated
+.classpath
+.factorypath
+.project
+.settings
+.springBeans
+.sts4-cache
+
+### IntelliJ IDEA ###
+.idea
+*.iws
+*.iml
+*.ipr
+
+### NetBeans ###
+/nbproject/private/
+/nbbuild/
+/dist/
+/nbdist/
+/.nb-gradle/
+build/
+!**/src/main/**/build/
+!**/src/test/**/build/
+
+### VS Code ###
+.vscode/
+
+### macOS ###
+.DS_Store
+
+### Secrets / local env (Plaid keys, JWT secret, DB passwords) ###
+.env
+.env.*
+!.env.example
+
+### Logs ###
+*.log
+logs/
+
+### Frontend (React/Vite) ###
+node_modules/
+frontend/dist/
+
+### Claude Code (personal settings) ###
+.claude/settings.local.json
