@@ -74,11 +74,11 @@ M1 in progress. Spring Boot 4.1.2 skeleton (Java 17, Maven; Web MVC, Data JPA, P
 **Done when:** `docker compose up -d` runs Postgres and `./mvnw spring-boot:run` starts the app without database errors.
 
 ## 7. Blockers / open questions
-- None yet
+- Setup note: Docker Desktop must be open and running (whale icon in the menu bar) before `docker compose up`, or you'll get a "cannot connect to Docker daemon" error.
 
 ## 8. Session log
 | Date | What got done | Next |
 |---|---|---|
 | 2026-10-24 | Scope finalized | Session 1: repo + Spring Boot skeleton |
-| 2026-10-24 | Session 1: verified Java 17/22 + Git; generated Boot 4.1.2 project (3.x no longer on Initializr); added .gitignore + CLAUDE.md; created GitHub repo and pushed first commit (fixed publish error by creating the repo on GitHub) | Session 2: Docker Desktop + Postgres in docker-compose.yml, app starts against it |
+| 2026-10-24 | Session 1: verified Java 17/22 + Git; generated Boot 4.1.2 project (3.x no longer on Initializr); added .gitignore + CLAUDE.md; created GitHub repo and pushed first commit (fixed push error "Password authentication is not supported" by logging in with GitHub CLI: `brew install gh`, `gh auth login`, `gh auth setup-git`) | Session 2: Docker Desktop + Postgres in docker-compose.yml, app starts against it |
 | 2026-10-24 | Ran `./mvnw spring-boot:run`: compiles, Tomcat initializes, stops with "Failed to configure a DataSource: 'url' attribute is not specified" (expected, no DB yet) | Session 3: first Flyway migration |
