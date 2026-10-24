@@ -67,7 +67,7 @@ A full-stack personal wealth & subscriptions dashboard. It links mock bank accou
 ---
 
 ## 5. Current status
-Not started. Scope finalized 2026-10-24.
+M1 in progress. Spring Boot 4.1.2 skeleton (Java 17, Maven; Web MVC, Data JPA, PostgreSQL, Flyway, Validation) generated and pushed to https://github.com/mermmin/aurawealth (first commit on `main`). `.gitignore` (incl. `.env` secrets) and `CLAUDE.md` added. App not yet run locally.
 
 ## 6. Next micro-task (one session, ~20 min)
 **Session 1:** Create the GitHub repo `aurawealth`. Generate a Spring Boot 3 project at start.spring.io (Java 17, Maven; dependencies: Spring Web, Spring Data JPA, PostgreSQL Driver, Flyway, Validation). Unzip it into the repo, run it once, commit, push.
@@ -80,3 +80,4 @@ Not started. Scope finalized 2026-10-24.
 | Date | What got done | Next |
 |---|---|---|
 | 2026-10-24 | Scope finalized | Session 1: repo + Spring Boot skeleton |
+| 2026-10-24 | Session 1: verified Java 17/22 + Git; generated Boot 4.1.2 project (3.x no longer on Initializr); added .gitignore + CLAUDE.md; created GitHub repo and pushed first commit (fixed publish error by creating the repo on GitHub) | Run app once with `./mvnw spring-boot:run`, then Postgres in Docker Compose |
