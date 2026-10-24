@@ -67,11 +67,11 @@ A full-stack personal wealth & subscriptions dashboard. It links mock bank accou
 ---
 
 ## 5. Current status
-M1 in progress. Spring Boot 4.1.2 skeleton (Java 17, Maven; Web MVC, Data JPA, PostgreSQL, Flyway, Validation) generated and pushed to https://github.com/mermmin/aurawealth (first commit on `main`). `.gitignore` (incl. `.env` secrets) and `CLAUDE.md` added. App not yet run locally.
+M1 in progress. Spring Boot 4.1.2 skeleton (Java 17, Maven; Web MVC, Data JPA, PostgreSQL, Flyway, Validation) generated and pushed to https://github.com/mermmin/aurawealth (first commit on `main`). `.gitignore` (incl. `.env` secrets) and `CLAUDE.md` added. App compiles and boots; ran once and stopped at DataSource setup (no DB URL configured yet), as expected. Session 1 complete.
 
 ## 6. Next micro-task (one session, ~20 min)
-**Session 1:** Create the GitHub repo `aurawealth`. Generate a Spring Boot 3 project at start.spring.io (Java 17, Maven; dependencies: Spring Web, Spring Data JPA, PostgreSQL Driver, Flyway, Validation). Unzip it into the repo, run it once, commit, push.
-**Done when:** the app starts locally (it may fail to connect to the database — that's fine for now) and the first commit is on GitHub.
+**Session 2:** Install/confirm Docker Desktop. Add a `docker-compose.yml` with a Postgres service, point `application.properties` at it, and get the app to start against it.
+**Done when:** `docker compose up -d` runs Postgres and `./mvnw spring-boot:run` starts the app without database errors.
 
 ## 7. Blockers / open questions
 - None yet
@@ -80,4 +80,5 @@ M1 in progress. Spring Boot 4.1.2 skeleton (Java 17, Maven; Web MVC, Data JPA, P
 | Date | What got done | Next |
 |---|---|---|
 | 2026-10-24 | Scope finalized | Session 1: repo + Spring Boot skeleton |
-| 2026-10-24 | Session 1: verified Java 17/22 + Git; generated Boot 4.1.2 project (3.x no longer on Initializr); added .gitignore + CLAUDE.md; created GitHub repo and pushed first commit (fixed publish error by creating the repo on GitHub) | Run app once with `./mvnw spring-boot:run`, then Postgres in Docker Compose |
+| 2026-10-24 | Session 1: verified Java 17/22 + Git; generated Boot 4.1.2 project (3.x no longer on Initializr); added .gitignore + CLAUDE.md; created GitHub repo and pushed first commit (fixed publish error by creating the repo on GitHub) | Session 2: Docker Desktop + Postgres in docker-compose.yml, app starts against it |
+| 2026-10-24 | Ran `./mvnw spring-boot:run`: compiles, Tomcat initializes, stops with "Failed to configure a DataSource: 'url' attribute is not specified" (expected, no DB yet) | Session 3: first Flyway migration |
