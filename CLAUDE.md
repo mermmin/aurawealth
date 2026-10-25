@@ -4,7 +4,7 @@
 **Read [AuraWealth-PROJECT.md](AuraWealth-PROJECT.md) first.** It holds the scope, decisions log, milestones, current status, and the next micro-task.
 
 ## End of every session
-Update "Current status", "Next micro-task", and "Session log" in AuraWealth-PROJECT.md.
+Update "Current status", "Next micro-task", and "Session log" in AuraWealth-PROJECT.md, then commit all changes with a message like "Session N complete: <summary>" and push to `origin main`.
 
 ## Ground rules
 - Stay inside v1 scope. Do not start v2 items until v1 is live.

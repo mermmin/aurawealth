@@ -56,7 +56,7 @@ A full-stack personal wealth & subscriptions dashboard. It links mock bank accou
 ---
 
 ## 4. Milestones (v1)
-- [ ] **M1 — Skeleton:** repo, Spring Boot app runs, Postgres in Docker Compose, first Flyway migration
+- [x] **M1 — Skeleton:** repo, Spring Boot app runs, Postgres in Docker Compose, first Flyway migration
 - [ ] **M2 — Auth:** User entity, register/login endpoints, JWT working, tests
 - [ ] **M3 — Plaid:** sandbox link flow, Accounts + Transactions saved, tests
 - [ ] **M4 — Logic:** net worth, category breakdown, subscription detection endpoints, tests
@@ -67,11 +67,11 @@ A full-stack personal wealth & subscriptions dashboard. It links mock bank accou
 ---
 
 ## 5. Current status
-M1 in progress. Spring Boot 4.1.2 skeleton (Java 17, Maven; Web MVC, Data JPA, PostgreSQL, Flyway, Validation) generated and pushed to https://github.com/mermmin/aurawealth (first commit on `main`). `.gitignore` (incl. `.env` secrets) and `CLAUDE.md` added. Session 2 complete: `docker-compose.yml` runs Postgres 17 locally (db/user/password `aurawealth`, overridable via env vars), and `application.properties` reads `DB_URL` / `DB_USERNAME` / `DB_PASSWORD` with local defaults. App starts against Postgres, Flyway creates its history table, Tomcat serves on 8080. `ddl-auto=validate` (Flyway owns the schema). No migrations yet.
+M1 in progress. Spring Boot 4.1.2 skeleton (Java 17, Maven; Web MVC, Data JPA, PostgreSQL, Flyway, Validation) generated and pushed to https://github.com/mermmin/aurawealth (first commit on `main`). `.gitignore` (incl. `.env` secrets) and `CLAUDE.md` added. Session 2 complete: `docker-compose.yml` runs Postgres 17 locally (db/user/password `aurawealth`, overridable via env vars), and `application.properties` reads `DB_URL` / `DB_USERNAME` / `DB_PASSWORD` with local defaults. App starts against Postgres, Flyway creates its history table, Tomcat serves on 8080. `ddl-auto=validate` (Flyway owns the schema). Session 3 complete: first migration `V1__create_users_table.sql` (`users`: identity `id`, unique `email`, `password_hash`, `created_at`/`updated_at` timestamptz) applied by Flyway; table verified in Postgres. **M1 done.**
 
 ## 6. Next micro-task (one session, ~20 min)
-**Session 3:** Write the first Flyway migration in `src/main/resources/db/migration` (e.g. `V1__create_users_table.sql`, laying groundwork for M2 auth). Start Postgres (`docker compose up -d`), run the app, and confirm Flyway applies it. Check the M1 box.
-**Done when:** the app logs "Successfully applied 1 migration" and the table exists in Postgres.
+**Session 4 (start of M2):** Create the `User` JPA entity in `com.aurawealth` (mapped to the `users` table from V1) and a `UserRepository` (Spring Data JPA, with `findByEmail`). Add a `@DataJpaTest` that saves a user and finds it by email against Postgres.
+**Done when:** the app starts with `ddl-auto=validate` passing (entity matches the table) and `./mvnw test` is green.
 
 ## 7. Blockers / open questions
 - Setup note: Docker Desktop must be open and running (whale icon in the menu bar) before `docker compose up`, or you'll get a "cannot connect to Docker daemon" error.
@@ -84,3 +84,4 @@ M1 in progress. Spring Boot 4.1.2 skeleton (Java 17, Maven; Web MVC, Data JPA, P
 | 2026-10-24 | Session 1: verified Java 17/22 + Git; generated Boot 4.1.2 project (3.x no longer on Initializr); added .gitignore + CLAUDE.md; created GitHub repo and pushed first commit (fixed push error "Password authentication is not supported" by logging in with GitHub CLI: `brew install gh`, `gh auth login`, `gh auth setup-git`) | Session 2: Docker Desktop + Postgres in docker-compose.yml, app starts against it |
 | 2026-10-24 | Ran `./mvnw spring-boot:run`: compiles, Tomcat initializes, stops with "Failed to configure a DataSource: 'url' attribute is not specified" (expected, no DB yet) | Session 3: first Flyway migration |
 | 2026-10-24 | Session 2: confirmed Docker Desktop 4.96.3 (Engine 29.9.2, Compose v5.6.1); added Docker CLI to PATH; added docker-compose.yml (Postgres 17) and datasource config with env-var overrides; app starts against Postgres in 2.8s | Session 3: first Flyway migration |
+| 2026-10-24 | Session 3: added `V1__create_users_table.sql`; `docker compose up -d`, app started, Flyway logged "Successfully applied 1 migration … now at version v1"; confirmed `users` table and `flyway_schema_history` via psql. M1 checked off | Session 4: User entity + repository + test (M2) |
