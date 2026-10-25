@@ -2,10 +2,12 @@ package com.aurawealth.transaction;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.tuple;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Set;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -128,6 +130,40 @@ class TransactionRepositoryTests {
 			.executeUpdate();
 
 		assertThat(transactionRepository.findByPlaidTransactionId("tx-1")).isEmpty();
+	}
+
+	@Test
+	void sumsNetSpendingByCategoryInsideWindowExcludingTransfersAndOtherUsers() {
+		LocalDate from = LocalDate.of(2026, 9, 26);
+		LocalDate to = LocalDate.of(2026, 10, 25);
+		save(user, account, "tx-before", "100", from.minusDays(1), "FOOD_AND_DRINK");
+		save(user, account, "tx-first-day", "10", from, "FOOD_AND_DRINK");
+		save(user, account, "tx-last-day", "5.50", to, "FOOD_AND_DRINK");
+		save(user, account, "tx-after", "100", to.plusDays(1), "FOOD_AND_DRINK");
+		save(user, account, "tx-uber", "40", OCT_1, "TRANSPORTATION");
+		save(user, account, "tx-partial-refund", "-5", OCT_1, "FOOD_AND_DRINK");
+		save(user, account, "tx-flight", "500", OCT_1, "TRAVEL");
+		save(user, account, "tx-flight-refund", "-500", OCT_1, "TRAVEL");
+		save(user, account, "tx-card-payment", "500", OCT_1, "LOAN_PAYMENTS");
+		save(user, account, "tx-uncategorized", "7", OCT_1, null);
+		User other = userRepository.save(new User("bob@example.com", "hash"));
+		PlaidItem otherItem = plaidItemRepository.save(new PlaidItem(other, "item-2", "token", null));
+		Account otherAccount = accountRepository
+			.save(new Account(other, otherItem, "acc-bob", "Bob Checking", null, "depository", null));
+		save(other, otherAccount, "tx-bob", "999", OCT_1, "FOOD_AND_DRINK");
+
+		List<CategorySpending> spending = transactionRepository.sumSpendingByCategory(user.getId(), from, to,
+				Set.of("TRANSFER_IN", "TRANSFER_OUT", "LOAN_PAYMENTS", "INCOME"));
+
+		assertThat(spending)
+			.extracting(CategorySpending::category, (row) -> row.amount().stripTrailingZeros().toPlainString())
+			.containsExactly(tuple("TRANSPORTATION", "40"), tuple("FOOD_AND_DRINK", "10.5"), tuple(null, "7"));
+	}
+
+	private void save(User owner, Account inAccount, String plaidId, String amount, LocalDate date,
+			String category) {
+		transactionRepository.saveAndFlush(new Transaction(owner, inAccount, plaidId, new BigDecimal(amount), "USD",
+				date, plaidId, null, category, false));
 	}
 
 	private Transaction transaction(String plaidId, String amount, String merchantName, String category) {

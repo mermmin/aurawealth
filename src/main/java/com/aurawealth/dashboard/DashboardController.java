@@ -21,4 +21,9 @@ public class DashboardController {
 		return dashboardService.netWorth(Long.valueOf(jwt.getSubject()));
 	}
 
+	@GetMapping("/spending")
+	public SpendingResponse spending(@AuthenticationPrincipal Jwt jwt) {
+		return dashboardService.spending(Long.valueOf(jwt.getSubject()));
+	}
+
 }

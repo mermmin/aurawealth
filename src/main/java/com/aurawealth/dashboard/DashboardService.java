@@ -1,6 +1,9 @@
 package com.aurawealth.dashboard;
 
 import java.math.BigDecimal;
+import java.time.Clock;
+import java.time.LocalDate;
+import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 
@@ -8,6 +11,8 @@ import org.springframework.stereotype.Service;
 
 import com.aurawealth.account.AccountRepository;
 import com.aurawealth.account.BalanceByType;
+import com.aurawealth.transaction.CategorySpending;
+import com.aurawealth.transaction.TransactionRepository;
 
 @Service
 public class DashboardService {
@@ -15,13 +20,29 @@ public class DashboardService {
 	// v1 links US sandbox banks only (see PlaidService.createLinkToken), so every balance is in dollars
 	static final String CURRENCY = "USD";
 
+	static final int SPENDING_WINDOW_DAYS = 30;
+
+	static final String UNCATEGORIZED = "UNCATEGORIZED";
+
 	// Plaid reports these balances as positive amounts owed; every other type (depository, investment, ...) is held
 	private static final Set<String> LIABILITY_TYPES = Set.of("credit", "loan");
 
+	// Money moving between the user's own accounts (e.g. paying off a credit card) or coming in isn't spending;
+	// counting a card payment would double-count the purchases already made on that card
+	static final Set<String> NON_SPENDING_CATEGORIES = Set.of("TRANSFER_IN", "TRANSFER_OUT", "LOAN_PAYMENTS",
+			"INCOME");
+
 	private final AccountRepository accountRepository;
 
-	public DashboardService(AccountRepository accountRepository) {
+	private final TransactionRepository transactionRepository;
+
+	private final Clock clock;
+
+	public DashboardService(AccountRepository accountRepository, TransactionRepository transactionRepository,
+			Clock clock) {
 		this.accountRepository = accountRepository;
+		this.transactionRepository = transactionRepository;
+		this.clock = clock;
 	}
 
 	public NetWorthResponse netWorth(Long userId) {
@@ -37,6 +58,20 @@ public class DashboardService {
 			}
 		}
 		return new NetWorthResponse(assets, liabilities, assets.subtract(liabilities), CURRENCY);
+	}
+
+	/** Spending by category over the last 30 days: today and the 29 days before it. */
+	public SpendingResponse spending(Long userId) {
+		LocalDate to = LocalDate.now(clock);
+		LocalDate from = to.minusDays(SPENDING_WINDOW_DAYS - 1);
+		List<CategorySpending> categories = transactionRepository
+			.sumSpendingByCategory(userId, from, to, NON_SPENDING_CATEGORIES)
+			.stream()
+			.map((row) -> new CategorySpending(Objects.requireNonNullElse(row.category(), UNCATEGORIZED),
+					row.amount()))
+			.toList();
+		BigDecimal total = categories.stream().map(CategorySpending::amount).reduce(BigDecimal.ZERO, BigDecimal::add);
+		return new SpendingResponse(from, to, total, CURRENCY, categories);
 	}
 
 }
