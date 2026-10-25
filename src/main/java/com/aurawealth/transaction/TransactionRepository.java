@@ -1,5 +1,6 @@
 package com.aurawealth.transaction;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.Collection;
 import java.util.List;
@@ -12,6 +13,8 @@ import org.springframework.data.jpa.repository.Query;
 public interface TransactionRepository extends JpaRepository<Transaction, Long> {
 
 	Optional<Transaction> findByPlaidTransactionId(String plaidTransactionId);
+
+	List<Transaction> findByUserIdAndAmountGreaterThan(Long userId, BigDecimal amount);
 
 	/** Applies the "removed" list from /transactions/sync in one statement; returns how many rows were deleted. */
 	@Modifying

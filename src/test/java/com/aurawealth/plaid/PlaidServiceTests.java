@@ -28,6 +28,7 @@ import org.springframework.transaction.support.TransactionOperations;
 import com.aurawealth.account.Account;
 import com.aurawealth.account.AccountRepository;
 import com.aurawealth.account.AccountResponse;
+import com.aurawealth.subscription.SubscriptionService;
 import com.aurawealth.transaction.Transaction;
 import com.aurawealth.transaction.TransactionRepository;
 import com.aurawealth.user.User;
@@ -73,6 +74,9 @@ class PlaidServiceTests {
 	private TransactionRepository transactionRepository;
 
 	@Mock
+	private SubscriptionService subscriptionService;
+
+	@Mock
 	private Call<LinkTokenCreateResponse> call;
 
 	@Mock
@@ -101,7 +105,7 @@ class PlaidServiceTests {
 	@BeforeEach
 	void setUp() {
 		plaidService = new PlaidService(plaidApi, userRepository, plaidItemRepository, accountRepository,
-				transactionRepository, TransactionOperations.withoutTransaction());
+				transactionRepository, subscriptionService, TransactionOperations.withoutTransaction());
 	}
 
 	@Test
@@ -231,6 +235,7 @@ class PlaidServiceTests {
 		assertThat(existing.getAmount()).isEqualTo(new BigDecimal("13.5"));
 		assertThat(existing.isPending()).isFalse();
 		assertThat(item.getTransactionsCursor()).isEqualTo("cursor-2");
+		then(subscriptionService).should().refresh(42L);
 	}
 
 	@Test
@@ -275,6 +280,7 @@ class PlaidServiceTests {
 			.isEqualTo(PlaidService.MUTATION_DURING_PAGINATION);
 		then(syncCall).should(times(PlaidService.MAX_SYNC_ATTEMPTS)).execute();
 		then(transactionRepository).shouldHaveNoInteractions();
+		then(subscriptionService).shouldHaveNoInteractions();
 		assertThat(item.getTransactionsCursor()).isEqualTo("cursor-0");
 	}
 

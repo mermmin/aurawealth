@@ -21,6 +21,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import com.aurawealth.account.AccountRepository;
 import com.aurawealth.account.BalanceByType;
 import com.aurawealth.transaction.CategorySpending;
+import com.aurawealth.transaction.SpendingCategories;
 import com.aurawealth.transaction.TransactionRepository;
 
 @ExtendWith(MockitoExtension.class)
@@ -80,7 +81,7 @@ class DashboardServiceTests {
 	@Test
 	void spendingCoversTodayAndThe29DaysBeforeAndExcludesNonSpending() {
 		given(transactionRepository.sumSpendingByCategory(42L, LocalDate.of(2026, 9, 26), LocalDate.of(2026, 10, 25),
-				DashboardService.NON_SPENDING_CATEGORIES))
+				SpendingCategories.NON_SPENDING))
 			.willReturn(List.of(new CategorySpending("FOOD_AND_DRINK", new BigDecimal("120.50")),
 					new CategorySpending("TRANSPORTATION", new BigDecimal("40.00")),
 					new CategorySpending(null, new BigDecimal("7.25"))));
@@ -93,7 +94,7 @@ class DashboardServiceTests {
 		assertThat(spending.currency()).isEqualTo("USD");
 		assertThat(spending.categories()).extracting(CategorySpending::category)
 			.containsExactly("FOOD_AND_DRINK", "TRANSPORTATION", "UNCATEGORIZED");
-		assertThat(DashboardService.NON_SPENDING_CATEGORIES).contains("LOAN_PAYMENTS", "TRANSFER_OUT");
+		assertThat(SpendingCategories.NON_SPENDING).contains("LOAN_PAYMENTS", "TRANSFER_OUT");
 	}
 
 	@Test

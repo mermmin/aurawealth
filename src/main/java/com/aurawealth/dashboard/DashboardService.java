@@ -12,6 +12,7 @@ import org.springframework.stereotype.Service;
 import com.aurawealth.account.AccountRepository;
 import com.aurawealth.account.BalanceByType;
 import com.aurawealth.transaction.CategorySpending;
+import com.aurawealth.transaction.SpendingCategories;
 import com.aurawealth.transaction.TransactionRepository;
 
 @Service
@@ -26,11 +27,6 @@ public class DashboardService {
 
 	// Plaid reports these balances as positive amounts owed; every other type (depository, investment, ...) is held
 	private static final Set<String> LIABILITY_TYPES = Set.of("credit", "loan");
-
-	// Money moving between the user's own accounts (e.g. paying off a credit card) or coming in isn't spending;
-	// counting a card payment would double-count the purchases already made on that card
-	static final Set<String> NON_SPENDING_CATEGORIES = Set.of("TRANSFER_IN", "TRANSFER_OUT", "LOAN_PAYMENTS",
-			"INCOME");
 
 	private final AccountRepository accountRepository;
 
@@ -65,7 +61,7 @@ public class DashboardService {
 		LocalDate to = LocalDate.now(clock);
 		LocalDate from = to.minusDays(SPENDING_WINDOW_DAYS - 1);
 		List<CategorySpending> categories = transactionRepository
-			.sumSpendingByCategory(userId, from, to, NON_SPENDING_CATEGORIES)
+			.sumSpendingByCategory(userId, from, to, SpendingCategories.NON_SPENDING)
 			.stream()
 			.map((row) -> new CategorySpending(Objects.requireNonNullElse(row.category(), UNCATEGORIZED),
 					row.amount()))

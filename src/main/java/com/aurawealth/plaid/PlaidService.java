@@ -15,6 +15,7 @@ import org.springframework.transaction.support.TransactionOperations;
 import com.aurawealth.account.Account;
 import com.aurawealth.account.AccountRepository;
 import com.aurawealth.account.AccountResponse;
+import com.aurawealth.subscription.SubscriptionService;
 import com.aurawealth.transaction.Transaction;
 import com.aurawealth.transaction.TransactionRepository;
 import com.aurawealth.user.User;
@@ -62,16 +63,19 @@ public class PlaidService {
 
 	private final TransactionRepository transactionRepository;
 
+	private final SubscriptionService subscriptionService;
+
 	private final TransactionOperations transactionOperations;
 
 	public PlaidService(PlaidApi plaidApi, UserRepository userRepository, PlaidItemRepository plaidItemRepository,
 			AccountRepository accountRepository, TransactionRepository transactionRepository,
-			TransactionOperations transactionOperations) {
+			SubscriptionService subscriptionService, TransactionOperations transactionOperations) {
 		this.plaidApi = plaidApi;
 		this.userRepository = userRepository;
 		this.plaidItemRepository = plaidItemRepository;
 		this.accountRepository = accountRepository;
 		this.transactionRepository = transactionRepository;
+		this.subscriptionService = subscriptionService;
 		this.transactionOperations = transactionOperations;
 	}
 
@@ -110,12 +114,16 @@ public class PlaidService {
 		});
 	}
 
-	/** Refreshes balances and pulls new, changed and removed transactions for every bank the user has linked. */
+	/**
+	 * Refreshes balances and pulls new, changed and removed transactions for every bank the user has linked, then
+	 * re-detects subscriptions from the updated history.
+	 */
 	public SyncResponse sync(Long userId) {
 		SyncResponse total = SyncResponse.NONE;
 		for (PlaidItem item : plaidItemRepository.findByUserId(userId)) {
 			total = total.plus(syncItem(userId, item));
 		}
+		subscriptionService.refresh(userId);
 		return total;
 	}
 
