@@ -7,6 +7,7 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExceptionHandler;
 
+import com.aurawealth.plaid.PlaidException;
 import com.aurawealth.user.EmailAlreadyRegisteredException;
 
 /**
@@ -24,6 +25,13 @@ public class ApiExceptionHandler extends ResponseEntityExceptionHandler {
 	@ExceptionHandler(BadCredentialsException.class)
 	public ProblemDetail handleBadCredentials() {
 		return ProblemDetail.forStatusAndDetail(HttpStatus.UNAUTHORIZED, "Invalid email or password");
+	}
+
+	@ExceptionHandler(PlaidException.class)
+	public ProblemDetail handlePlaid(PlaidException ex) {
+		// Plaid's error details go to the log, not to the client
+		logger.warn(ex.getMessage(), ex);
+		return ProblemDetail.forStatusAndDetail(HttpStatus.BAD_GATEWAY, "Bank connection service is unavailable");
 	}
 
 }
