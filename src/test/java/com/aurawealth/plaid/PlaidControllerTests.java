@@ -92,4 +92,22 @@ class PlaidControllerTests {
 			.andExpect(status().isUnauthorized());
 	}
 
+	@Test
+	void syncReturnsWhatChanged() throws Exception {
+		given(plaidService.sync(42L)).willReturn(new SyncResponse(14, 48, 2, 1));
+
+		mockMvc.perform(post("/api/plaid/sync").with(jwt().jwt((token) -> token.subject("42"))))
+			.andExpect(status().isOk())
+			.andExpect(jsonPath("$.accounts").value(14))
+			.andExpect(jsonPath("$.added").value(48))
+			.andExpect(jsonPath("$.modified").value(2))
+			.andExpect(jsonPath("$.removed").value(1));
+	}
+
+	@Test
+	void syncRequiresAuthentication() throws Exception {
+		mockMvc.perform(post("/api/plaid/sync")).andExpect(status().isUnauthorized());
+		then(plaidService).should(never()).sync(any());
+	}
+
 }

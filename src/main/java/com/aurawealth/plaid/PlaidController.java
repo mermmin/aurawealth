@@ -38,4 +38,10 @@ public class PlaidController {
 		return plaidService.linkItem(Long.valueOf(jwt.getSubject()), request.publicToken());
 	}
 
+	/** Refreshes balances and transactions for all of the signed-in user's linked banks. */
+	@PostMapping("/sync")
+	public SyncResponse sync(@AuthenticationPrincipal Jwt jwt) {
+		return plaidService.sync(Long.valueOf(jwt.getSubject()));
+	}
+
 }

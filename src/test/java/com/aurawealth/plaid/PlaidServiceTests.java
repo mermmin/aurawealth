@@ -6,9 +6,11 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.then;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 
 import java.io.IOException;
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Optional;
@@ -20,11 +22,14 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.transaction.support.TransactionOperations;
 
 import com.aurawealth.account.Account;
 import com.aurawealth.account.AccountRepository;
 import com.aurawealth.account.AccountResponse;
+import com.aurawealth.transaction.Transaction;
+import com.aurawealth.transaction.TransactionRepository;
 import com.aurawealth.user.User;
 import com.aurawealth.user.UserRepository;
 import com.plaid.client.model.AccountBalance;
@@ -37,7 +42,11 @@ import com.plaid.client.model.Item;
 import com.plaid.client.model.ItemPublicTokenExchangeResponse;
 import com.plaid.client.model.LinkTokenCreateRequest;
 import com.plaid.client.model.LinkTokenCreateResponse;
+import com.plaid.client.model.PersonalFinanceCategory;
 import com.plaid.client.model.Products;
+import com.plaid.client.model.RemovedTransaction;
+import com.plaid.client.model.TransactionsSyncRequest;
+import com.plaid.client.model.TransactionsSyncResponse;
 import com.plaid.client.request.PlaidApi;
 
 import okhttp3.MediaType;
@@ -61,6 +70,9 @@ class PlaidServiceTests {
 	private AccountRepository accountRepository;
 
 	@Mock
+	private TransactionRepository transactionRepository;
+
+	@Mock
 	private Call<LinkTokenCreateResponse> call;
 
 	@Mock
@@ -69,18 +81,27 @@ class PlaidServiceTests {
 	@Mock
 	private Call<AccountsGetResponse> balanceCall;
 
+	@Mock
+	private Call<TransactionsSyncResponse> syncCall;
+
 	@Captor
 	private ArgumentCaptor<LinkTokenCreateRequest> request;
 
 	@Captor
 	private ArgumentCaptor<PlaidItem> savedItem;
 
+	@Captor
+	private ArgumentCaptor<TransactionsSyncRequest> syncRequests;
+
+	@Captor
+	private ArgumentCaptor<Transaction> savedTransactions;
+
 	private PlaidService plaidService;
 
 	@BeforeEach
 	void setUp() {
 		plaidService = new PlaidService(plaidApi, userRepository, plaidItemRepository, accountRepository,
-				TransactionOperations.withoutTransaction());
+				transactionRepository, TransactionOperations.withoutTransaction());
 	}
 
 	@Test
@@ -178,6 +199,132 @@ class PlaidServiceTests {
 			.hasMessageContaining("INVALID_PUBLIC_TOKEN");
 		then(plaidItemRepository).should(never()).save(any());
 		then(accountRepository).should(never()).save(any());
+	}
+
+	@Test
+	void syncAppliesAllPagesAndSavesCursorLast() throws IOException {
+		User user = new User("ada@example.com", "hash");
+		PlaidItem item = linkedItem(user, "cursor-0");
+		Transaction existing = new Transaction(user, null, "tx-pending", new BigDecimal("12.00"), "USD",
+				LocalDate.of(2026, 10, 1), "UBER", "Uber", "TRANSPORTATION", true);
+		givenSyncStarts(user, item);
+		given(syncCall.execute()).willReturn(
+				Response.success(page("cursor-1", true, List.of(plaidTransaction("tx-new", 15.49)), List.of(),
+						List.of())),
+				Response.success(page("cursor-2", false, List.of(),
+						List.of(plaidTransaction("tx-pending", 13.5)), List.of("tx-gone"))));
+		given(transactionRepository.findByPlaidTransactionId("tx-new")).willReturn(Optional.empty());
+		given(transactionRepository.findByPlaidTransactionId("tx-pending")).willReturn(Optional.of(existing));
+		given(transactionRepository.deleteByPlaidTransactionIds(List.of("tx-gone"))).willReturn(1);
+
+		SyncResponse response = plaidService.sync(42L);
+
+		assertThat(response).isEqualTo(new SyncResponse(1, 1, 1, 1));
+		assertThat(syncRequests.getAllValues()).extracting(TransactionsSyncRequest::getCursor)
+			.containsExactly("cursor-0", "cursor-1");
+		then(transactionRepository).should(times(2)).save(savedTransactions.capture());
+		Transaction added = savedTransactions.getAllValues().get(0);
+		assertThat(added.getPlaidTransactionId()).isEqualTo("tx-new");
+		assertThat(added.getAmount()).isEqualTo(new BigDecimal("15.49"));
+		assertThat(added.getCategory()).isEqualTo("ENTERTAINMENT");
+		assertThat(added.getAccount().getPlaidAccountId()).isEqualTo("acc-checking");
+		assertThat(existing.getAmount()).isEqualTo(new BigDecimal("13.5"));
+		assertThat(existing.isPending()).isFalse();
+		assertThat(item.getTransactionsCursor()).isEqualTo("cursor-2");
+	}
+
+	@Test
+	void syncRestartsFromStartCursorWhenPlaidDataChangesMidPagination() throws IOException {
+		User user = new User("ada@example.com", "hash");
+		PlaidItem item = linkedItem(user, "cursor-0");
+		givenSyncStarts(user, item);
+		given(syncCall.execute()).willReturn(
+				Response.success(page("cursor-1", true, List.of(plaidTransaction("tx-stale", 1.0)), List.of(),
+						List.of())),
+				Response.error(400, ResponseBody.create(
+						"{\"error_code\":\"" + PlaidService.MUTATION_DURING_PAGINATION + "\"}",
+						MediaType.get("application/json"))),
+				Response.success(page("cursor-9", false, List.of(plaidTransaction("tx-fresh", 2.0)), List.of(),
+						List.of())));
+		given(transactionRepository.findByPlaidTransactionId("tx-fresh")).willReturn(Optional.empty());
+
+		SyncResponse response = plaidService.sync(42L);
+
+		assertThat(syncRequests.getAllValues()).extracting(TransactionsSyncRequest::getCursor)
+			.containsExactly("cursor-0", "cursor-1", "cursor-0");
+		assertThat(response.added()).isEqualTo(1);
+		then(transactionRepository).should().save(savedTransactions.capture());
+		assertThat(savedTransactions.getValue().getPlaidTransactionId()).isEqualTo("tx-fresh");
+		assertThat(item.getTransactionsCursor()).isEqualTo("cursor-9");
+	}
+
+	@Test
+	void syncGivesUpAfterRepeatedMutationsAndKeepsOldCursor() throws IOException {
+		User user = new User("ada@example.com", "hash");
+		PlaidItem item = linkedItem(user, "cursor-0");
+		given(plaidItemRepository.findByUserId(42L)).willReturn(List.of(item));
+		given(plaidApi.accountsBalanceGet(any())).willReturn(balanceCall);
+		given(balanceCall.execute()).willReturn(Response.success(new AccountsGetResponse().accounts(List.of())));
+		given(plaidApi.transactionsSync(any())).willReturn(syncCall);
+		given(syncCall.execute()).willAnswer((invocation) -> Response.error(400, ResponseBody.create(
+				"{\"error_code\":\"" + PlaidService.MUTATION_DURING_PAGINATION + "\"}",
+				MediaType.get("application/json"))));
+
+		assertThatThrownBy(() -> plaidService.sync(42L)).isInstanceOf(PlaidException.class)
+			.extracting("errorCode")
+			.isEqualTo(PlaidService.MUTATION_DURING_PAGINATION);
+		then(syncCall).should(times(PlaidService.MAX_SYNC_ATTEMPTS)).execute();
+		then(transactionRepository).shouldHaveNoInteractions();
+		assertThat(item.getTransactionsCursor()).isEqualTo("cursor-0");
+	}
+
+	@Test
+	void syncWithNoLinkedBanksDoesNothing() {
+		given(plaidItemRepository.findByUserId(42L)).willReturn(List.of());
+
+		assertThat(plaidService.sync(42L)).isEqualTo(new SyncResponse(0, 0, 0, 0));
+		then(plaidApi).shouldHaveNoInteractions();
+	}
+
+	private PlaidItem linkedItem(User user, String cursor) {
+		PlaidItem item = new PlaidItem(user, "item-1", "access-sandbox-xyz", "First Platypus Bank");
+		ReflectionTestUtils.setField(item, "id", 5L);
+		item.updateTransactionsCursor(cursor);
+		return item;
+	}
+
+	private void givenSyncStarts(User user, PlaidItem item) throws IOException {
+		given(plaidItemRepository.findByUserId(42L)).willReturn(List.of(item));
+		given(plaidItemRepository.findById(5L)).willReturn(Optional.of(item));
+		given(userRepository.getReferenceById(42L)).willReturn(user);
+		given(plaidApi.accountsBalanceGet(any())).willReturn(balanceCall);
+		given(balanceCall.execute()).willReturn(Response.success(new AccountsGetResponse().accounts(
+				List.of(plaidAccount("acc-checking", AccountType.DEPOSITORY, AccountSubtype.CHECKING, 110.0, 100.0)))));
+		given(accountRepository.findByPlaidAccountId("acc-checking")).willReturn(Optional.empty());
+		given(accountRepository.save(any())).willAnswer((invocation) -> invocation.getArgument(0));
+		given(plaidApi.transactionsSync(syncRequests.capture())).willReturn(syncCall);
+	}
+
+	private static TransactionsSyncResponse page(String nextCursor, boolean hasMore,
+			List<com.plaid.client.model.Transaction> added, List<com.plaid.client.model.Transaction> modified,
+			List<String> removedIds) {
+		return new TransactionsSyncResponse().nextCursor(nextCursor)
+			.hasMore(hasMore)
+			.added(added)
+			.modified(modified)
+			.removed(removedIds.stream().map((id) -> new RemovedTransaction().transactionId(id)).toList());
+	}
+
+	private static com.plaid.client.model.Transaction plaidTransaction(String id, double amount) {
+		return new com.plaid.client.model.Transaction().transactionId(id)
+			.accountId("acc-checking")
+			.amount(amount)
+			.isoCurrencyCode("USD")
+			.date(LocalDate.of(2026, 10, 2))
+			.name("NETFLIX.COM")
+			.merchantName("Netflix")
+			.pending(false)
+			.personalFinanceCategory(new PersonalFinanceCategory().primary("ENTERTAINMENT"));
 	}
 
 	private void givenPlaidReturns(AccountBase... accounts) throws IOException {
