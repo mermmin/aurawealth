@@ -7,12 +7,15 @@ import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 
+import java.util.Optional;
+
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
 @ExtendWith(MockitoExtension.class)
@@ -57,6 +60,32 @@ class UserServiceTests {
 
 		assertThatThrownBy(() -> userService.register("ada@example.com", "s3cret-pass"))
 			.isInstanceOf(EmailAlreadyRegisteredException.class);
+	}
+
+	@Test
+	void authenticateReturnsUserWhenPasswordMatches() {
+		User existing = new User("ada@example.com", "hashed");
+		given(userRepository.findByEmail("ada@example.com")).willReturn(Optional.of(existing));
+		given(passwordEncoder.matches("s3cret-pass", "hashed")).willReturn(true);
+
+		assertThat(userService.authenticate(" ADA@example.com", "s3cret-pass")).isSameAs(existing);
+	}
+
+	@Test
+	void authenticateRejectsWrongPassword() {
+		given(userRepository.findByEmail("ada@example.com")).willReturn(Optional.of(new User("ada@example.com", "hashed")));
+		given(passwordEncoder.matches("wrong-pass", "hashed")).willReturn(false);
+
+		assertThatThrownBy(() -> userService.authenticate("ada@example.com", "wrong-pass"))
+			.isInstanceOf(BadCredentialsException.class);
+	}
+
+	@Test
+	void authenticateRejectsUnknownEmail() {
+		given(userRepository.findByEmail("nobody@example.com")).willReturn(Optional.empty());
+
+		assertThatThrownBy(() -> userService.authenticate("nobody@example.com", "s3cret-pass"))
+			.isInstanceOf(BadCredentialsException.class);
 	}
 
 }

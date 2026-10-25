@@ -1,6 +1,7 @@
 package com.aurawealth.user;
 
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -30,6 +31,14 @@ public class UserService {
 			// Two signups with the same email raced past the exists check; the unique constraint caught it.
 			throw new EmailAlreadyRegisteredException(normalizedEmail);
 		}
+	}
+
+	/** Returns the user if the password matches; the same error for unknown email and wrong password. */
+	@Transactional(readOnly = true)
+	public User authenticate(String email, String rawPassword) {
+		return userRepository.findByEmail(User.normalizeEmail(email))
+			.filter((user) -> passwordEncoder.matches(rawPassword, user.getPasswordHash()))
+			.orElseThrow(() -> new BadCredentialsException("Invalid email or password"));
 	}
 
 }

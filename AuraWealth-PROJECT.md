@@ -57,7 +57,7 @@ A full-stack personal wealth & subscriptions dashboard. It links mock bank accou
 
 ## 4. Milestones (v1)
 - [x] **M1 — Skeleton:** repo, Spring Boot app runs, Postgres in Docker Compose, first Flyway migration
-- [ ] **M2 — Auth:** User entity, register/login endpoints, JWT working, tests
+- [x] **M2 — Auth:** User entity, register/login endpoints, JWT working, tests
 - [ ] **M3 — Plaid:** sandbox link flow, Accounts + Transactions saved, tests
 - [ ] **M4 — Logic:** net worth, category breakdown, subscription detection endpoints, tests
 - [ ] **M5 — Design:** Figma mockups for Dashboard, Accounts, Subscriptions
@@ -67,12 +67,16 @@ A full-stack personal wealth & subscriptions dashboard. It links mock bank accou
 ---
 
 ## 5. Current status
-M1 in progress. Spring Boot 4.1.2 skeleton (Java 17, Maven; Web MVC, Data JPA, PostgreSQL, Flyway, Validation) generated and pushed to https://github.com/mermmin/aurawealth (first commit on `main`). `.gitignore` (incl. `.env` secrets) and `CLAUDE.md` added. Session 2 complete: `docker-compose.yml` runs Postgres 17 locally (db/user/password `aurawealth`, overridable via env vars), and `application.properties` reads `DB_URL` / `DB_USERNAME` / `DB_PASSWORD` with local defaults. App starts against Postgres, Flyway creates its history table, Tomcat serves on 8080. `ddl-auto=validate` (Flyway owns the schema). Session 3 complete: first migration `V1__create_users_table.sql` (`users`: identity `id`, unique `email`, `password_hash`, `created_at`/`updated_at` timestamptz) applied by Flyway; table verified in Postgres. **M1 done.** M2 in progress. Session 4 complete: `User` entity + `UserRepository` (`findByEmail`, `existsByEmail`) in `com.aurawealth.user`; emails normalized (trim + lowercase) in the constructor. `UserRepositoryTests` (`@DataJpaTest` against real Postgres, rolls back) covers save/find and duplicate-email rejection. `./mvnw test`: 3 tests green. Session 5 complete: added `spring-boot-starter-security` (+ `-security-test`); `SecurityConfig` provides a BCrypt `PasswordEncoder` bean; `UserService.register(email, password)` normalizes the email, rejects duplicates with `EmailAlreadyRegisteredException` (also translates the unique-constraint race), and stores only the hash. `UserServiceTests` (JUnit 5 + Mockito, no DB) cover success, duplicate, and race. `./mvnw test`: 6 tests green. Note: Security's default config currently locks every endpoint (none exist yet).
+M1 in progress. Spring Boot 4.1.2 skeleton (Java 17, Maven; Web MVC, Data JPA, PostgreSQL, Flyway, Validation) generated and pushed to https://github.com/mermmin/aurawealth (first commit on `main`). `.gitignore` (incl. `.env` secrets) and `CLAUDE.md` added. Session 2 complete: `docker-compose.yml` runs Postgres 17 locally (db/user/password `aurawealth`, overridable via env vars), and `application.properties` reads `DB_URL` / `DB_USERNAME` / `DB_PASSWORD` with local defaults. App starts against Postgres, Flyway creates its history table, Tomcat serves on 8080. `ddl-auto=validate` (Flyway owns the schema). Session 3 complete: first migration `V1__create_users_table.sql` (`users`: identity `id`, unique `email`, `password_hash`, `created_at`/`updated_at` timestamptz) applied by Flyway; table verified in Postgres. **M1 done.** M2 in progress. Session 4 complete: `User` entity + `UserRepository` (`findByEmail`, `existsByEmail`) in `com.aurawealth.user`; emails normalized (trim + lowercase) in the constructor. `UserRepositoryTests` (`@DataJpaTest` against real Postgres, rolls back) covers save/find and duplicate-email rejection. `./mvnw test`: 3 tests green. Session 5 complete: added `spring-boot-starter-security` (+ `-security-test`); `SecurityConfig` provides a BCrypt `PasswordEncoder` bean; `UserService.register(email, password)` normalizes the email, rejects duplicates with `EmailAlreadyRegisteredException` (also translates the unique-constraint race), and stores only the hash. `UserServiceTests` (JUnit 5 + Mockito, no DB) cover success, duplicate, and race. `./mvnw test`: 6 tests green. Session 6 complete: added `spring-boot-starter-security-oauth2-resource-server` (Spring's Nimbus JWT support, no third-party JWT lib). `JwtService.issue(user)` signs HS256 tokens (iss `aurawealth`, sub = user id, `email` claim, 1h TTL from `aurawealth.jwt.ttl`). Secret from `JWT_SECRET` (`aurawealth.jwt.secret`, dev default in `application.properties`; app refuses secrets < 32 bytes). Decoder validates signature, expiry, and issuer. `JwtServiceTests`: 4 tests.
+Session 7 complete, **M2 done**: stateless `SecurityFilterChain` (CSRF off, no sessions; `/api/auth/**` and `/error` public, everything else needs a Bearer JWT). Endpoints: `POST /api/auth/register` (201, `{accessToken, tokenType, expiresAt}`; validates email + password 8–72 chars), `POST /api/auth/login` (200; same 401 for unknown email or wrong password), `GET /api/me` (`{id, email}` from the token). `ApiExceptionHandler` returns RFC 9457 problem JSON (409 duplicate, 401 bad credentials, 400 validation). `AuthControllerTests` (`@SpringBootTest` + MockMvc, real Postgres, rolls back): 6 tests. `./mvnw test`: 19 tests green; also smoke-tested all endpoints with curl against the running app.
 
 ## 6. Next micro-task (one session, ~20 min)
-**Session 6:** JWT issuing. Add `spring-boot-starter-oauth2-resource-server` (Spring's built-in Nimbus JWT support, no third-party JWT library). Create a `JwtService` that issues an HS256 token (subject = user id, email claim, 1h expiry) signed with a secret from `JWT_SECRET` (local default in `application.properties`, real secret only via env). Unit-test that an issued token decodes with the right subject and expiry.
-**Done when:** the `JwtService` tests pass and `./mvnw test` is green.
-**After that (Session 7):** `SecurityFilterChain` (stateless, `/api/auth/**` public, everything else needs a valid JWT) + `POST /api/auth/register` and `/api/auth/login` controllers with Spring Boot Test controller tests. That completes M2.
+**Session 8 (start of M3, Plaid):**
+1. *You, before the session:* create a free Plaid account at https://dashboard.plaid.com and copy the **Sandbox** `client_id` and `secret` (Team Settings → Keys).
+2. Add the `plaid-java` dependency and a `PlaidConfig` that builds the Plaid client from `PLAID_CLIENT_ID` / `PLAID_SECRET` env vars (sandbox environment; no secrets in the repo).
+3. Add `POST /api/plaid/link-token` (authenticated) that returns a Link token for the current user. Test with a mocked Plaid client.
+**Done when:** calling the endpoint with a valid JWT returns a real sandbox `link_token`, and `./mvnw test` is green.
+Later in M3: V2 migration for `accounts` (+ Plaid item/access token), exchange public token, sync balances, then transactions.
 
 ## 7. Blockers / open questions
 - Setup note: Docker Desktop must be open and running (whale icon in the menu bar) before `docker compose up`, or you'll get a "cannot connect to Docker daemon" error.
@@ -80,6 +84,8 @@ M1 in progress. Spring Boot 4.1.2 skeleton (Java 17, Maven; Web MVC, Data JPA, P
 
 - Setup note: `./mvnw test` needs Postgres running (`docker compose up -d`); repository tests use the real database, not an in-memory one.
 - Editor note: VS Code's SQL Server (mssql) extension flags Postgres syntax in migrations as errors; they're false positives. Edit migrations in `src/main/resources`, never the copy in `target/`.
+
+- Possible later polish: 400 validation responses currently say only "Invalid request content." without naming the bad field; may want field-level errors for the frontend forms (M6).
 
 ## 8. Session log
 | Date | What got done | Next |
@@ -91,3 +97,5 @@ M1 in progress. Spring Boot 4.1.2 skeleton (Java 17, Maven; Web MVC, Data JPA, P
 | 2026-10-24 | Session 3: added `V1__create_users_table.sql`; `docker compose up -d`, app started, Flyway logged "Successfully applied 1 migration … now at version v1"; confirmed `users` table and `flyway_schema_history` via psql. M1 checked off | Session 4: User entity + repository + test (M2) |
 | 2026-10-24 | Session 4: `User` entity + `UserRepository` + `UserRepositoryTests` (save/find by email, duplicate rejected); `./mvnw test` 3/3 green | Session 5: Spring Security + BCrypt + `UserService.register` with Mockito tests |
 | 2026-10-24 | Session 5: Spring Security + BCrypt `PasswordEncoder`; `UserService.register` with duplicate/race handling; `UserServiceTests` (Mockito); `./mvnw test` 6/6 green | Session 6: `JwtService` (HS256 via Spring's Nimbus support) + tests |
+| 2026-10-24 | Session 6: `JwtService` (HS256, Spring Nimbus support) + secret config + 4 tests | Session 7 |
+| 2026-10-24 | Session 7: `SecurityFilterChain`, `/api/auth/register`, `/api/auth/login`, `/api/me`, problem-JSON error handler, `AuthControllerTests`; 19/19 tests green; curl smoke test passed. M2 checked off | Session 8: Plaid sandbox keys + link-token endpoint (M3) |
