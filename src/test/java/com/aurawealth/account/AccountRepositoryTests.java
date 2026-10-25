@@ -2,6 +2,7 @@ package com.aurawealth.account;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.tuple;
 
 import java.math.BigDecimal;
 
@@ -68,12 +69,35 @@ class AccountRepositoryTests {
 	}
 
 	@Test
+	void sumsCurrentBalancesByTypeForOneUserOnly() {
+		saveAccount(user, item, "acc-checking", "depository", "110.0000");
+		saveAccount(user, item, "acc-savings", "depository", "210.5000");
+		saveAccount(user, item, "acc-card", "credit", "410.0000");
+		saveAccount(user, item, "acc-cd", "investment", null);
+		User other = userRepository.save(new User("bob@example.com", "hash"));
+		PlaidItem otherItem = plaidItemRepository.save(new PlaidItem(other, "item-2", "token", null));
+		saveAccount(other, otherItem, "acc-bob", "depository", "999.0000");
+
+		assertThat(accountRepository.sumCurrentBalancesByType(user.getId()))
+			.extracting(BalanceByType::type,
+					(row) -> (row.total() != null) ? row.total().stripTrailingZeros().toPlainString() : null)
+			.containsExactlyInAnyOrder(tuple("depository", "320.5"), tuple("credit", "410"),
+					tuple("investment", null));
+	}
+
+	@Test
 	void rejectsDuplicatePlaidAccountId() {
 		accountRepository.saveAndFlush(new Account(user, item, "acc-1", "Checking", null, "depository", null));
 
 		assertThatThrownBy(() -> accountRepository
 			.saveAndFlush(new Account(user, item, "acc-1", "Again", null, "depository", null)))
 			.isInstanceOf(DataIntegrityViolationException.class);
+	}
+
+	private void saveAccount(User owner, PlaidItem plaidItem, String plaidId, String type, String balance) {
+		Account account = new Account(owner, plaidItem, plaidId, plaidId, null, type, null);
+		account.updateBalances((balance != null) ? new BigDecimal(balance) : null, null, "USD");
+		accountRepository.saveAndFlush(account);
 	}
 
 }

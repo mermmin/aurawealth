@@ -101,9 +101,11 @@ class TransactionRepositoryTests {
 		int deleted = transactionRepository.deleteByPlaidTransactionIds(List.of("tx-1", "tx-3", "tx-unknown"));
 		entityManager.clear();
 
+		// Checks only this test's rows: the dev database may also hold transactions from live sandbox syncs
 		assertThat(deleted).isEqualTo(2);
-		assertThat(transactionRepository.findAll()).extracting(Transaction::getPlaidTransactionId)
-			.containsExactly("tx-2");
+		assertThat(transactionRepository.findByPlaidTransactionId("tx-1")).isEmpty();
+		assertThat(transactionRepository.findByPlaidTransactionId("tx-2")).isPresent();
+		assertThat(transactionRepository.findByPlaidTransactionId("tx-3")).isEmpty();
 	}
 
 	@Test
