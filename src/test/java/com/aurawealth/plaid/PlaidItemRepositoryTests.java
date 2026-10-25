@@ -53,6 +53,20 @@ class PlaidItemRepositoryTests {
 	}
 
 	@Test
+	void transactionsCursorStartsNullAndPersistsUpdates() {
+		User user = userRepository.save(new User("ada@example.com", "hash"));
+		PlaidItem item = plaidItemRepository.saveAndFlush(new PlaidItem(user, "item-1", TOKEN, null));
+		assertThat(item.getTransactionsCursor()).isNull();
+
+		item.updateTransactionsCursor("cursor-abc");
+		plaidItemRepository.saveAndFlush(item);
+		entityManager.clear();
+
+		assertThat(plaidItemRepository.findByItemId("item-1").orElseThrow().getTransactionsCursor())
+			.isEqualTo("cursor-abc");
+	}
+
+	@Test
 	void rejectsDuplicateItemId() {
 		User user = userRepository.save(new User("ada@example.com", "hash"));
 		plaidItemRepository.saveAndFlush(new PlaidItem(user, "item-1", TOKEN, null));

@@ -45,6 +45,9 @@ public class PlaidItem {
 	@Column(name = "created_at", nullable = false, updatable = false)
 	private Instant createdAt;
 
+	@Column(name = "transactions_cursor")
+	private String transactionsCursor;
+
 	protected PlaidItem() {
 		// required by JPA
 	}
@@ -78,6 +81,15 @@ public class PlaidItem {
 
 	public Instant getCreatedAt() {
 		return createdAt;
+	}
+
+	/** Where the last /transactions/sync left off; null means the next sync starts from the beginning. */
+	public String getTransactionsCursor() {
+		return transactionsCursor;
+	}
+
+	public void updateTransactionsCursor(String transactionsCursor) {
+		this.transactionsCursor = transactionsCursor;
 	}
 
 	@Override
