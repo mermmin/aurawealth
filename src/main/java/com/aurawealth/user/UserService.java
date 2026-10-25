@@ -18,14 +18,15 @@ public class UserService {
 		this.passwordEncoder = passwordEncoder;
 	}
 
+	/** {@code displayName} is optional (null or blank means none). */
 	@Transactional
-	public User register(String email, String rawPassword) {
+	public User register(String email, String rawPassword, String displayName) {
 		String normalizedEmail = User.normalizeEmail(email);
 		if (userRepository.existsByEmail(normalizedEmail)) {
 			throw new EmailAlreadyRegisteredException(normalizedEmail);
 		}
 		try {
-			return userRepository.saveAndFlush(new User(normalizedEmail, passwordEncoder.encode(rawPassword)));
+			return userRepository.saveAndFlush(new User(normalizedEmail, passwordEncoder.encode(rawPassword), displayName));
 		}
 		catch (DataIntegrityViolationException ex) {
 			// Two signups with the same email raced past the exists check; the unique constraint caught it.

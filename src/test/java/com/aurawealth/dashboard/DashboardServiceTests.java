@@ -20,6 +20,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import com.aurawealth.account.AccountRepository;
 import com.aurawealth.account.BalanceByType;
+import com.aurawealth.plaid.PlaidItemRepository;
 import com.aurawealth.transaction.CategorySpending;
 import com.aurawealth.transaction.SpendingCategories;
 import com.aurawealth.transaction.TransactionRepository;
@@ -35,11 +36,15 @@ class DashboardServiceTests {
 	@Mock
 	private TransactionRepository transactionRepository;
 
+	@Mock
+	private PlaidItemRepository plaidItemRepository;
+
 	private DashboardService dashboardService;
 
 	@BeforeEach
 	void setUp() {
-		dashboardService = new DashboardService(accountRepository, transactionRepository, OCT_25);
+		dashboardService = new DashboardService(accountRepository, transactionRepository, plaidItemRepository,
+				OCT_25);
 	}
 
 	@Test
@@ -75,7 +80,16 @@ class DashboardServiceTests {
 		given(accountRepository.sumCurrentBalancesByType(42L)).willReturn(List.of());
 
 		assertThat(dashboardService.netWorth(42L))
-			.isEqualTo(new NetWorthResponse(BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO, "USD"));
+			.isEqualTo(new NetWorthResponse(BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO, "USD", null));
+	}
+
+	@Test
+	void netWorthIsAsOfTheOldestBankSync() {
+		Instant oldest = Instant.parse("2026-10-24T08:00:00Z");
+		given(accountRepository.sumCurrentBalancesByType(42L)).willReturn(List.of());
+		given(plaidItemRepository.findOldestSyncedAt(42L)).willReturn(oldest);
+
+		assertThat(dashboardService.netWorth(42L).asOf()).isEqualTo(oldest);
 	}
 
 	@Test

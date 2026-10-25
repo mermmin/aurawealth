@@ -2,6 +2,8 @@ package com.aurawealth.plaid;
 
 import java.io.IOException;
 import java.math.BigDecimal;
+import java.time.Clock;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -67,9 +69,11 @@ public class PlaidService {
 
 	private final TransactionOperations transactionOperations;
 
+	private final Clock clock;
+
 	public PlaidService(PlaidApi plaidApi, UserRepository userRepository, PlaidItemRepository plaidItemRepository,
 			AccountRepository accountRepository, TransactionRepository transactionRepository,
-			SubscriptionService subscriptionService, TransactionOperations transactionOperations) {
+			SubscriptionService subscriptionService, TransactionOperations transactionOperations, Clock clock) {
 		this.plaidApi = plaidApi;
 		this.userRepository = userRepository;
 		this.plaidItemRepository = plaidItemRepository;
@@ -77,6 +81,7 @@ public class PlaidService {
 		this.transactionRepository = transactionRepository;
 		this.subscriptionService = subscriptionService;
 		this.transactionOperations = transactionOperations;
+		this.clock = clock;
 	}
 
 	/** Creates a short-lived token the frontend uses to open Plaid Link for this user. */
@@ -105,8 +110,9 @@ public class PlaidService {
 		return transactionOperations.execute((status) -> {
 			User user = userRepository.getReferenceById(userId);
 			String institutionName = (balances.getItem() != null) ? balances.getItem().getInstitutionName() : null;
-			PlaidItem item = plaidItemRepository
-				.save(new PlaidItem(user, exchange.getItemId(), exchange.getAccessToken(), institutionName));
+			PlaidItem newItem = new PlaidItem(user, exchange.getItemId(), exchange.getAccessToken(), institutionName);
+			newItem.markSynced(Instant.now(clock));
+			PlaidItem item = plaidItemRepository.save(newItem);
 			return balances.getAccounts()
 				.stream()
 				.map((plaidAccount) -> AccountResponse.from(accountRepository.save(upsert(user, item, plaidAccount))))
@@ -146,6 +152,7 @@ public class PlaidService {
 					: transactionRepository.deleteByPlaidTransactionIds(changes.removedIds());
 			// Saved last and in the same transaction, so a failed save means the next sync re-fetches these changes
 			managedItem.updateTransactionsCursor(changes.nextCursor());
+			managedItem.markSynced(Instant.now(clock));
 			return new SyncResponse(accountsByPlaidId.size(), changes.added().size(), changes.modified().size(),
 					removed);
 		});

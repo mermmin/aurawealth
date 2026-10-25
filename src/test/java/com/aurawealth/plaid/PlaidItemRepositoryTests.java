@@ -3,6 +3,8 @@ package com.aurawealth.plaid;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import java.time.Instant;
+
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.data.jpa.test.autoconfigure.DataJpaTest;
@@ -67,12 +69,31 @@ class PlaidItemRepositoryTests {
 	}
 
 	@Test
+	void oldestSyncIsPerUserAndNullWithoutBanks() {
+		User user = userRepository.save(new User("ada@example.com", "hash"));
+		User other = userRepository.save(new User("bob@example.com", "hash"));
+		assertThat(plaidItemRepository.findOldestSyncedAt(user.getId())).isNull();
+		saveSynced(user, "item-1", "2026-10-25T09:00:00Z");
+		saveSynced(user, "item-2", "2026-10-24T09:00:00Z");
+		saveSynced(other, "item-3", "2026-01-01T00:00:00Z");
+
+		assertThat(plaidItemRepository.findOldestSyncedAt(user.getId()))
+			.isEqualTo(Instant.parse("2026-10-24T09:00:00Z"));
+	}
+
+	@Test
 	void rejectsDuplicateItemId() {
 		User user = userRepository.save(new User("ada@example.com", "hash"));
 		plaidItemRepository.saveAndFlush(new PlaidItem(user, "item-1", TOKEN, null));
 
 		assertThatThrownBy(() -> plaidItemRepository.saveAndFlush(new PlaidItem(user, "item-1", "other", null)))
 			.isInstanceOf(DataIntegrityViolationException.class);
+	}
+
+	private void saveSynced(User owner, String itemId, String syncedAt) {
+		PlaidItem item = new PlaidItem(owner, itemId, TOKEN, null);
+		item.markSynced(Instant.parse(syncedAt));
+		plaidItemRepository.saveAndFlush(item);
 	}
 
 }

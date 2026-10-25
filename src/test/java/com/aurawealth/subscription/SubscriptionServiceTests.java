@@ -98,19 +98,20 @@ class SubscriptionServiceTests {
 	}
 
 	@Test
-	void listShowsActiveFirstThenHighestMonthlyCost() {
+	void listShowsActiveFirstThenSoonestNextCharge() {
 		given(subscriptionRepository.findByUserId(42L)).willReturn(List.of(
-				subscription("Domain", "120.00", Frequency.ANNUAL, true),
-				subscription("Old Gym", "300.00", Frequency.MONTHLY, false),
-				subscription("Meal Kit", "60.00", Frequency.WEEKLY, true),
-				subscription("Climbing", "78.50", Frequency.MONTHLY, true)));
+				subscription("Domain", "120.00", Frequency.ANNUAL, LocalDate.of(2025, 11, 2), true),
+				subscription("Old Gym", "300.00", Frequency.MONTHLY, LocalDate.of(2026, 6, 5), false),
+				subscription("Meal Kit", "60.00", Frequency.WEEKLY, LocalDate.of(2026, 10, 24), true),
+				subscription("Climbing", "78.50", Frequency.MONTHLY, LocalDate.of(2026, 10, 9), true)));
 
 		List<SubscriptionResponse> ledger = subscriptionService.listForUser(42L);
 
+		// Domain renews Nov 2, Meal Kit Oct 31, Climbing Nov 9; Old Gym is inactive so it goes last
 		assertThat(ledger).extracting(SubscriptionResponse::merchantName)
-			.containsExactly("Meal Kit", "Climbing", "Domain", "Old Gym");
+			.containsExactly("Meal Kit", "Domain", "Climbing", "Old Gym");
 		assertThat(ledger.get(0).monthlyCost()).isEqualByComparingTo("260.00");
-		assertThat(ledger.get(2).monthlyCost()).isEqualByComparingTo("10.00");
+		assertThat(ledger.get(1).monthlyCost()).isEqualByComparingTo("10.00");
 	}
 
 	private List<Transaction> monthly(String merchantName, String name, String amount, String category,
@@ -124,9 +125,10 @@ class SubscriptionServiceTests {
 		return charges;
 	}
 
-	private Subscription subscription(String merchant, String amount, Frequency frequency, boolean active) {
+	private Subscription subscription(String merchant, String amount, Frequency frequency, LocalDate lastChargedOn,
+			boolean active) {
 		return new Subscription(user, merchant.toLowerCase(), merchant, new BigDecimal(amount), "USD", frequency,
-				LocalDate.of(2026, 10, 1), null, active);
+				lastChargedOn, null, active);
 	}
 
 }

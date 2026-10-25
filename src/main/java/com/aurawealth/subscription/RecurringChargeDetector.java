@@ -34,9 +34,9 @@ public class RecurringChargeDetector {
 	public record Detected(String merchantKey, String merchantName, BigDecimal amount, String isoCurrencyCode,
 			Frequency frequency, LocalDate lastChargedOn, String category) {
 
-		/** Still active until it has missed a whole expected charge, i.e. two periods have passed since the last. */
+		/** Active until the next expected charge is more than {@link Frequency#graceDays()} overdue. */
 		public boolean isActiveOn(LocalDate today) {
-			return !today.isAfter(lastChargedOn.plus(frequency.period()).plus(frequency.period()));
+			return !today.isAfter(lastChargedOn.plus(frequency.period()).plusDays(frequency.graceDays()));
 		}
 
 	}

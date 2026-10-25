@@ -41,6 +41,17 @@ class JwtServiceTests {
 	}
 
 	@Test
+	void displayNameTravelsAsNameClaimOnlyWhenSet() {
+		User named = new User("ada@example.com", "hash", "Ada Lovelace");
+		ReflectionTestUtils.setField(named, "id", 42L);
+
+		assertThat(jwtDecoder.decode(jwtService.issue(named).getTokenValue()).getClaimAsString("name"))
+			.isEqualTo("Ada Lovelace");
+		assertThat(jwtDecoder.decode(jwtService.issue(user(43L, "bob@example.com")).getTokenValue())
+			.hasClaim("name")).isFalse();
+	}
+
+	@Test
 	void tokenSignedWithAnotherSecretIsRejected() {
 		JwtService otherService = new JwtService(
 				securityConfig.jwtEncoder("a-completely-different-secret-of-32-bytes"), Duration.ofHours(1));

@@ -100,7 +100,21 @@ class RecurringChargeDetectorTests {
 	}
 
 	@Test
-	void staysActiveUntilAWholeExpectedChargeIsMissed() {
+	void missedAnnualRenewalTurnsInactiveAfterTheGracePeriodNotAYearLater() {
+		LocalDate today = LocalDate.of(2026, 10, 25);
+		Detected lapsed = new Detected("calm", "Calm", new BigDecimal("69.99"), "USD", Frequency.ANNUAL,
+				LocalDate.of(2025, 1, 10), null);
+		Detected renewsSoon = new Detected("domain", "Domain", BigDecimal.TEN, "USD", Frequency.ANNUAL,
+				LocalDate.of(2025, 10, 1), null);
+
+		assertThat(lapsed.isActiveOn(today)).isFalse();
+		assertThat(renewsSoon.isActiveOn(today)).isTrue();
+		assertThat(renewsSoon.isActiveOn(LocalDate.of(2026, 10, 31))).isTrue();
+		assertThat(renewsSoon.isActiveOn(LocalDate.of(2026, 11, 1))).isFalse();
+	}
+
+	@Test
+	void monthlyStaysActiveUntilTheNextChargeIs30DaysOverdue() {
 		Detected monthly = new Detected("gym", "Gym", BigDecimal.TEN, "USD", Frequency.MONTHLY,
 				LocalDate.of(2026, 8, 20), null);
 

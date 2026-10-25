@@ -36,17 +36,27 @@ class UserServiceTests {
 		given(passwordEncoder.encode("s3cret-pass")).willReturn("hashed");
 		given(userRepository.saveAndFlush(any(User.class))).willAnswer((invocation) -> invocation.getArgument(0));
 
-		User user = userService.register(" Ada@Example.com ", "s3cret-pass");
+		User user = userService.register(" Ada@Example.com ", "s3cret-pass", null);
 
 		assertThat(user.getEmail()).isEqualTo("ada@example.com");
 		assertThat(user.getPasswordHash()).isEqualTo("hashed");
+		assertThat(user.getDisplayName()).isNull();
+	}
+
+	@Test
+	void registerTrimsDisplayNameAndTreatsBlankAsNone() {
+		given(userRepository.saveAndFlush(any(User.class))).willAnswer((invocation) -> invocation.getArgument(0));
+
+		assertThat(userService.register("ada@example.com", "s3cret-pass", "  Ada Lovelace ").getDisplayName())
+			.isEqualTo("Ada Lovelace");
+		assertThat(userService.register("bob@example.com", "s3cret-pass", "   ").getDisplayName()).isNull();
 	}
 
 	@Test
 	void registerRejectsExistingEmail() {
 		given(userRepository.existsByEmail("ada@example.com")).willReturn(true);
 
-		assertThatThrownBy(() -> userService.register("ADA@example.com", "s3cret-pass"))
+		assertThatThrownBy(() -> userService.register("ADA@example.com", "s3cret-pass", null))
 			.isInstanceOf(EmailAlreadyRegisteredException.class);
 		verify(userRepository, never()).saveAndFlush(any());
 		verify(passwordEncoder, never()).encode(any());
@@ -58,7 +68,7 @@ class UserServiceTests {
 		given(passwordEncoder.encode("s3cret-pass")).willReturn("hashed");
 		given(userRepository.saveAndFlush(any(User.class))).willThrow(new DataIntegrityViolationException("dup"));
 
-		assertThatThrownBy(() -> userService.register("ada@example.com", "s3cret-pass"))
+		assertThatThrownBy(() -> userService.register("ada@example.com", "s3cret-pass", null))
 			.isInstanceOf(EmailAlreadyRegisteredException.class);
 	}
 

@@ -7,6 +7,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import java.math.BigDecimal;
+import java.time.Instant;
 import java.time.LocalDate;
 import java.util.List;
 
@@ -32,14 +33,15 @@ class DashboardControllerTests {
 	@Test
 	void netWorthForSignedInUser() throws Exception {
 		given(dashboardService.netWorth(42L)).willReturn(new NetWorthResponse(new BigDecimal("1000.00"),
-				new BigDecimal("250.00"), new BigDecimal("750.00"), "USD"));
+				new BigDecimal("250.00"), new BigDecimal("750.00"), "USD", Instant.parse("2026-10-25T21:00:00Z")));
 
 		mockMvc.perform(get("/api/dashboard/net-worth").with(jwt().jwt((token) -> token.subject("42"))))
 			.andExpect(status().isOk())
 			.andExpect(jsonPath("$.assets").value(1000.00))
 			.andExpect(jsonPath("$.liabilities").value(250.00))
 			.andExpect(jsonPath("$.netWorth").value(750.00))
-			.andExpect(jsonPath("$.currency").value("USD"));
+			.andExpect(jsonPath("$.currency").value("USD"))
+			.andExpect(jsonPath("$.asOf").value("2026-10-25T21:00:00Z"));
 	}
 
 	@Test

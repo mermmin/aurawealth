@@ -10,12 +10,12 @@ import java.time.Period;
  */
 public enum Frequency {
 
-	WEEKLY(Period.ofWeeks(1), 5, 9, 3, 52),
+	WEEKLY(Period.ofWeeks(1), 5, 9, 3, 52, 7),
 
-	MONTHLY(Period.ofMonths(1), 26, 35, 3, 12),
+	MONTHLY(Period.ofMonths(1), 26, 35, 3, 12, 30),
 
 	// Two charges are enough: three would need two years of history, more than Plaid usually returns
-	ANNUAL(Period.ofYears(1), 350, 380, 2, 1);
+	ANNUAL(Period.ofYears(1), 350, 380, 2, 1, 30);
 
 	private static final BigDecimal MONTHS_PER_YEAR = BigDecimal.valueOf(12);
 
@@ -29,12 +29,15 @@ public enum Frequency {
 
 	private final int chargesPerYear;
 
-	Frequency(Period period, int minGapDays, int maxGapDays, int minCharges, int chargesPerYear) {
+	private final int graceDays;
+
+	Frequency(Period period, int minGapDays, int maxGapDays, int minCharges, int chargesPerYear, int graceDays) {
 		this.period = period;
 		this.minGapDays = minGapDays;
 		this.maxGapDays = maxGapDays;
 		this.minCharges = minCharges;
 		this.chargesPerYear = chargesPerYear;
+		this.graceDays = graceDays;
 	}
 
 	public Period period() {
@@ -43,6 +46,14 @@ public enum Frequency {
 
 	public boolean matchesGap(long gapDays) {
 		return gapDays >= minGapDays && gapDays <= maxGapDays;
+	}
+
+	/**
+	 * How late an expected charge may be before the subscription counts as cancelled. A fixed grace rather than a
+	 * whole extra period, so a missed annual renewal shows up within a month instead of a year later.
+	 */
+	public int graceDays() {
+		return graceDays;
 	}
 
 	/** Fewest charges that make a pattern; fewer is a coincidence, not a subscription. */

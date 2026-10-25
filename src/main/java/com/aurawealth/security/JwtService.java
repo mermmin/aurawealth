@@ -31,15 +31,17 @@ public class JwtService {
 	/** Issues an access token whose subject is the user's id. */
 	public Jwt issue(User user) {
 		Instant now = Instant.now();
-		JwtClaimsSet claims = JwtClaimsSet.builder()
+		JwtClaimsSet.Builder claims = JwtClaimsSet.builder()
 			.issuer(ISSUER)
 			.subject(user.getId().toString())
 			.issuedAt(now)
 			.expiresAt(now.plus(ttl))
-			.claim("email", user.getEmail())
-			.build();
+			.claim("email", user.getEmail());
+		if (user.getDisplayName() != null) {
+			claims.claim("name", user.getDisplayName());
+		}
 		JwsHeader header = JwsHeader.with(MacAlgorithm.HS256).build();
-		return jwtEncoder.encode(JwtEncoderParameters.from(header, claims));
+		return jwtEncoder.encode(JwtEncoderParameters.from(header, claims.build()));
 	}
 
 }

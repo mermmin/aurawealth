@@ -10,8 +10,11 @@ import static org.mockito.Mockito.times;
 
 import java.io.IOException;
 import java.math.BigDecimal;
+import java.time.Clock;
+import java.time.Instant;
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Optional;
 
@@ -100,12 +103,14 @@ class PlaidServiceTests {
 	@Captor
 	private ArgumentCaptor<Transaction> savedTransactions;
 
+	private static final Clock NOW = Clock.fixed(Instant.parse("2026-10-25T21:00:00Z"), ZoneOffset.UTC);
+
 	private PlaidService plaidService;
 
 	@BeforeEach
 	void setUp() {
 		plaidService = new PlaidService(plaidApi, userRepository, plaidItemRepository, accountRepository,
-				transactionRepository, subscriptionService, TransactionOperations.withoutTransaction());
+				transactionRepository, subscriptionService, TransactionOperations.withoutTransaction(), NOW);
 	}
 
 	@Test
@@ -162,6 +167,7 @@ class PlaidServiceTests {
 		assertThat(savedItem.getValue().getItemId()).isEqualTo("item-1");
 		assertThat(savedItem.getValue().getAccessToken()).isEqualTo("access-sandbox-xyz");
 		assertThat(savedItem.getValue().getInstitutionName()).isEqualTo("First Platypus Bank");
+		assertThat(savedItem.getValue().getLastSyncedAt()).isEqualTo(NOW.instant());
 		assertThat(accounts).hasSize(2);
 		AccountResponse checking = accounts.get(0);
 		assertThat(checking.institutionName()).isEqualTo("First Platypus Bank");
@@ -235,6 +241,7 @@ class PlaidServiceTests {
 		assertThat(existing.getAmount()).isEqualTo(new BigDecimal("13.5"));
 		assertThat(existing.isPending()).isFalse();
 		assertThat(item.getTransactionsCursor()).isEqualTo("cursor-2");
+		assertThat(item.getLastSyncedAt()).isEqualTo(NOW.instant());
 		then(subscriptionService).should().refresh(42L);
 	}
 

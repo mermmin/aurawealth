@@ -79,14 +79,14 @@ public class SubscriptionService {
 		undetected.values().forEach(Subscription::deactivate);
 	}
 
-	/** Active subscriptions first, then the most expensive per month. */
+	/** Active subscriptions first, then by next expected charge (soonest first), as in the ledger design. */
 	@Transactional(readOnly = true)
 	public List<SubscriptionResponse> listForUser(Long userId) {
 		return subscriptionRepository.findByUserId(userId)
 			.stream()
 			.map(SubscriptionResponse::from)
 			.sorted(Comparator.comparing(SubscriptionResponse::active, Comparator.reverseOrder())
-				.thenComparing(SubscriptionResponse::monthlyCost, Comparator.reverseOrder())
+				.thenComparing(SubscriptionResponse::nextExpectedOn)
 				.thenComparing(SubscriptionResponse::merchantName))
 			.toList();
 	}

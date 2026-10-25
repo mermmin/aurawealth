@@ -48,6 +48,9 @@ public class PlaidItem {
 	@Column(name = "transactions_cursor")
 	private String transactionsCursor;
 
+	@Column(name = "last_synced_at")
+	private Instant lastSyncedAt;
+
 	protected PlaidItem() {
 		// required by JPA
 	}
@@ -90,6 +93,15 @@ public class PlaidItem {
 
 	public void updateTransactionsCursor(String transactionsCursor) {
 		this.transactionsCursor = transactionsCursor;
+	}
+
+	/** When balances were last fetched from Plaid; set on link and on every sync. */
+	public Instant getLastSyncedAt() {
+		return lastSyncedAt;
+	}
+
+	public void markSynced(Instant syncedAt) {
+		this.lastSyncedAt = syncedAt;
 	}
 
 	@Override

@@ -11,6 +11,7 @@ import org.springframework.stereotype.Service;
 
 import com.aurawealth.account.AccountRepository;
 import com.aurawealth.account.BalanceByType;
+import com.aurawealth.plaid.PlaidItemRepository;
 import com.aurawealth.transaction.CategorySpending;
 import com.aurawealth.transaction.SpendingCategories;
 import com.aurawealth.transaction.TransactionRepository;
@@ -32,12 +33,15 @@ public class DashboardService {
 
 	private final TransactionRepository transactionRepository;
 
+	private final PlaidItemRepository plaidItemRepository;
+
 	private final Clock clock;
 
 	public DashboardService(AccountRepository accountRepository, TransactionRepository transactionRepository,
-			Clock clock) {
+			PlaidItemRepository plaidItemRepository, Clock clock) {
 		this.accountRepository = accountRepository;
 		this.transactionRepository = transactionRepository;
+		this.plaidItemRepository = plaidItemRepository;
 		this.clock = clock;
 	}
 
@@ -53,7 +57,8 @@ public class DashboardService {
 				assets = assets.add(total);
 			}
 		}
-		return new NetWorthResponse(assets, liabilities, assets.subtract(liabilities), CURRENCY);
+		return new NetWorthResponse(assets, liabilities, assets.subtract(liabilities), CURRENCY,
+				plaidItemRepository.findOldestSyncedAt(userId));
 	}
 
 	/** Spending by category over the last 30 days: today and the 29 days before it. */

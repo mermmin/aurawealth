@@ -36,7 +36,32 @@ class AuthControllerTests {
 		mockMvc.perform(get("/api/me").header(HttpHeaders.AUTHORIZATION, "Bearer " + token))
 			.andExpect(status().isOk())
 			.andExpect(jsonPath("$.email").value("ada@example.com"))
-			.andExpect(jsonPath("$.id").isNumber());
+			.andExpect(jsonPath("$.id").isNumber())
+			.andExpect(jsonPath("$.displayName").isEmpty());
+	}
+
+	@Test
+	void displayNameGivenAtRegisterIsReturnedByMe() throws Exception {
+		String body = """
+				{"email": "ada@example.com", "password": "s3cret-pass", "displayName": "Ada Lovelace"}
+				""";
+		String token = accessToken(mockMvc
+			.perform(post("/api/auth/register").contentType(MediaType.APPLICATION_JSON).content(body))
+			.andExpect(status().isCreated()));
+
+		mockMvc.perform(get("/api/me").header(HttpHeaders.AUTHORIZATION, "Bearer " + token))
+			.andExpect(status().isOk())
+			.andExpect(jsonPath("$.displayName").value("Ada Lovelace"));
+	}
+
+	@Test
+	void registerRejectsOverlongDisplayName() throws Exception {
+		String body = """
+				{"email": "ada@example.com", "password": "s3cret-pass", "displayName": "%s"}
+				""".formatted("x".repeat(101));
+
+		mockMvc.perform(post("/api/auth/register").contentType(MediaType.APPLICATION_JSON).content(body))
+			.andExpect(status().isBadRequest());
 	}
 
 	@Test
