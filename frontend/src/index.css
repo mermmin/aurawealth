@@ -1,0 +1,48 @@
+@import 'tailwindcss';
+
+/* Design tokens from AuraWealth-PROJECT.md §9 (measured from docs/design/). */
+@theme {
+  --color-bg: #f9f6f3;
+  --color-bg-subtle: #fbf7f8;
+  --color-surface: #ffffff;
+  --color-blush: #f1e3e7;
+  --color-border: #e9e1e4;
+  --color-border-blush: #dbc9d1;
+  --color-plum: #512c48;
+  --color-pink: #c890a5;
+  --color-ink: #32252f;
+  /* #827780 as designed fails WCAG AA on small text; #6B6269 passes on every background. */
+  --color-ink-muted: #6b6269;
+  --color-ink-inactive: #6b6269;
+  --color-success-bg: #eaf3ed;
+  --color-success: #3d7562;
+  --color-inactive-badge-bg: #fcf9fa;
+  --color-inactive-badge: #6b6269;
+
+  --color-chart-1: #512c48;
+  --color-chart-2: #c890a5;
+  --color-chart-3: #ada0bc;
+  --color-chart-4: #dfd8de;
+  --color-chart-5: #dfccbb;
+
+  --font-display: 'Instrument Serif', Georgia, serif;
+  --font-sans: 'Inter', ui-sans-serif, system-ui, sans-serif;
+
+  --radius-card: 16px;
+  --radius-button: 8px;
+  --radius-nav: 10px;
+  --radius-tile: 8px;
+}
+
+@layer base {
+  html {
+    background-color: var(--color-bg);
+    color: var(--color-ink);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+  }
+}
+
+@utility money {
+  font-variant-numeric: tabular-nums;
+}
