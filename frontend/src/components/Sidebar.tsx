@@ -1,5 +1,6 @@
 import { NavLink } from 'react-router-dom'
-import { Flower, Landmark, LayoutGrid, Repeat, Sprout, UserRound, type LucideIcon } from 'lucide-react'
+import { Flower, Landmark, LayoutGrid, LogOut, Repeat, Sprout, UserRound, type LucideIcon } from 'lucide-react'
+import { clearAuth } from '../api/client'
 import { nameOf, useMe } from '../api/me'
 
 const NAV: { to: string; label: string; icon: LucideIcon }[] = [
@@ -70,10 +71,19 @@ function UserBlock() {
       >
         {name ? initials(name) : <UserRound className="size-5" strokeWidth={1.5} />}
       </span>
-      <div className="min-w-0">
-        <p className="truncate text-[15px] font-medium text-ink">{name ?? 'Not signed in'}</p>
-        <p className="truncate text-[13px] text-ink-muted">{me ? me.email : 'Sign in to continue'}</p>
+      <div className="min-w-0 flex-1">
+        <p className="truncate text-[15px] font-medium text-ink">{name ?? '\u00a0'}</p>
+        <p className="truncate text-[13px] text-ink-muted">{me?.email ?? '\u00a0'}</p>
       </div>
+      <button
+        type="button"
+        onClick={clearAuth}
+        title="Sign out"
+        aria-label="Sign out"
+        className="rounded-button p-1.5 text-ink-muted hover:bg-blush hover:text-plum"
+      >
+        <LogOut className="size-4" strokeWidth={1.5} />
+      </button>
     </div>
   )
 }

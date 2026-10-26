@@ -1,4 +1,5 @@
 import { useQuery } from '@tanstack/react-query'
+import { apiFetch } from './client'
 
 export interface Me {
   id: number
@@ -6,15 +7,8 @@ export interface Me {
   displayName: string | null
 }
 
-// Bearer token is added in Session 20 (auth); until then this returns 401.
-async function fetchMe(): Promise<Me> {
-  const res = await fetch('/api/me')
-  if (!res.ok) throw new Error(`GET /api/me failed: ${res.status}`)
-  return res.json()
-}
-
 export function useMe() {
-  return useQuery({ queryKey: ['me'], queryFn: fetchMe, retry: false })
+  return useQuery({ queryKey: ['me'], queryFn: () => apiFetch<Me>('/api/me') })
 }
 
 /** displayName when set, otherwise the email's local part. */
