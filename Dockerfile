@@ -25,4 +25,5 @@ RUN useradd --system --no-create-home aurawealth
 COPY --from=backend /app/app.jar app.jar
 USER aurawealth
 EXPOSE 8080
-ENTRYPOINT ["java", "-jar", "app.jar"]
+# The JVM defaults to a quarter of the container's memory for the heap; free hosts give 512 MB, so allow more
+ENTRYPOINT ["java", "-XX:MaxRAMPercentage=75", "-jar", "app.jar"]
