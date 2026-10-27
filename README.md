@@ -1,5 +1,7 @@
 # AuraWealth
 
+[![CI](https://github.com/mermmin/aurawealth/actions/workflows/ci.yml/badge.svg)](https://github.com/mermmin/aurawealth/actions/workflows/ci.yml)
+
 A full-stack personal wealth and subscriptions dashboard. AuraWealth links bank accounts through the Plaid sandbox to track net worth, spending by category, and recurring subscriptions.
 
 > **Status:** in progress. The backend auth and Plaid link-token flow are done; account syncing, the dashboard logic, and the React front end are next.
