@@ -1,13 +1,15 @@
 import { Landmark } from 'lucide-react'
 import { institutionOf, isLiability, useAccounts, type Account } from '../api/accounts'
+import { useLinkBank, type LinkBank } from '../api/plaid'
 import PageHeader from '../components/PageHeader'
 import AccountsTable from '../components/accounts/AccountsTable'
-import LinkBankButton from '../components/accounts/LinkBankButton'
+import LinkBankButton, { LinkBankError } from '../components/accounts/LinkBankButton'
 import { Card, CardError, Skeleton } from '../components/Card'
 import { formatMoney } from '../lib/format'
 
 export default function AccountsPage() {
   const { data: accounts, isPending, isError, error, refetch } = useAccounts()
+  const link = useLinkBank()
 
   return (
     <>
@@ -15,8 +17,9 @@ export default function AccountsPage() {
         page="Accounts"
         title="Every account. One clear view."
         subtitle="Your balances, organized by bank. A little less scattered, a little more settled."
-        action={<LinkBankButton />}
+        action={<LinkBankButton link={link} />}
       />
+      <LinkBankError link={link} />
 
       {isPending ? (
         <div className="space-y-7">
@@ -32,7 +35,7 @@ export default function AccountsPage() {
           <CardError message={error.message} onRetry={() => refetch()} />
         </Card>
       ) : accounts.length === 0 ? (
-        <NoBanks />
+        <NoBanks link={link} />
       ) : (
         <div className="space-y-7">
           <Summary accounts={accounts} />
@@ -77,7 +80,7 @@ function Tile({ className, label, value, caption }: { className: string; label: 
   )
 }
 
-function NoBanks() {
+function NoBanks({ link }: { link: LinkBank }) {
   return (
     <section className="flex flex-col gap-6 rounded-card border border-border bg-bg-subtle p-7 sm:flex-row sm:items-center">
       <span className="grid size-24 shrink-0 place-items-center rounded-full bg-blush text-plum">
@@ -88,7 +91,7 @@ function NoBanks() {
         <p className="mt-1 text-[15px] text-ink-muted">No banks linked yet. Link your first bank to see your accounts in one place.</p>
         <p className="mt-2 text-[13px] text-ink-muted">You’ll continue in Plaid to choose your bank and accounts.</p>
       </div>
-      <LinkBankButton />
+      <LinkBankButton link={link} />
     </section>
   )
 }
