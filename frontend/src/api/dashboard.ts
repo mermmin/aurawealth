@@ -10,6 +10,22 @@ export interface NetWorth {
   asOf: string | null
 }
 
+export interface CategorySpending {
+  /** Plaid primary category, e.g. `FOOD_AND_DRINK`; `UNCATEGORIZED` when Plaid gave none. */
+  category: string
+  amount: number
+}
+
+export interface Spending {
+  /** Plain dates, both inclusive. */
+  from: string
+  to: string
+  total: number
+  currency: string
+  /** Biggest first. */
+  categories: CategorySpending[]
+}
+
 export interface SyncResult {
   accounts: number
   added: number
@@ -19,6 +35,10 @@ export interface SyncResult {
 
 export function useNetWorth() {
   return useQuery({ queryKey: ['net-worth'], queryFn: () => apiFetch<NetWorth>('/api/dashboard/net-worth') })
+}
+
+export function useSpending() {
+  return useQuery({ queryKey: ['spending'], queryFn: () => apiFetch<Spending>('/api/dashboard/spending') })
 }
 
 export function useSync() {

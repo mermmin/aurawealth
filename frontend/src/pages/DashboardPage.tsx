@@ -1,6 +1,8 @@
 import PageHeader from '../components/PageHeader'
 import NetWorthCard from '../components/dashboard/NetWorthCard'
 import AccountsCard from '../components/dashboard/AccountsCard'
+import SpendingCard from '../components/dashboard/SpendingCard'
+import OnRepeatCard from '../components/dashboard/OnRepeatCard'
 import { SyncButton, SyncResultStrip } from '../components/dashboard/Sync'
 import { useSync } from '../api/dashboard'
 import { nameOf, useMe } from '../api/me'
@@ -24,6 +26,10 @@ export default function DashboardPage() {
           <AccountsCard />
         </div>
         <SyncResultStrip sync={sync} />
+        <div className="grid gap-6 xl:grid-cols-[62fr_38fr]">
+          <SpendingCard />
+          <OnRepeatCard />
+        </div>
       </div>
     </>
   )
