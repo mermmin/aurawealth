@@ -108,7 +108,7 @@ Design story for M6: a calm, editorial personal-finance UI in a light plum-and-b
 - Possible later polish: subscription detection ignores refunds, so a merchant whose charges are always refunded (sandbox United Airlines) still shows as a subscription. Could skip merchants whose refunds cancel their charges.
 - Design follow-ups for M6 (details in §9): muted text `#827780` fails WCAG AA on small text, use `#6B6269`; "Credit card balance" copy under liabilities is wrong once loans exist; designs need a negative net worth, 14+ accounts, loans, and loading/error states.
 - Deploy note: production secrets live only in Render's Environment tab (never in the repo or chat). Rotating `TOKEN_ENCRYPTION_KEY` makes stored Plaid tokens unreadable (users re-link); rotating `JWT_SECRET` signs everyone out. `SPRING_PROFILES_ACTIVE=prod` makes a missing variable stop startup with its name.
-- Free-tier cold start: the Render free instance sleeps after 15 idle minutes; the first visit after that waits while the container and Spring Boot start. Possible polish: a \"waking up the server\" note on the login page, or Render Starter (~$7/month) with the same Neon DB.
+- Free-tier cold start: the Render free instance sleeps after 15 idle minutes; the first visit after that waits while the container and Spring Boot start. Possible polish: a "waking up the server" note on the login page, or Render Starter (~$7/month) with the same Neon DB.
 
 ## 8. Session log
 | Date | What got done | Next |
