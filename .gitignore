@@ -47,6 +47,8 @@ logs/
 ### Frontend (React/Vite) ###
 node_modules/
 frontend/dist/
+# Built frontend copied in by the Dockerfile
+src/main/resources/static/
 
 ### Claude Code (personal settings) ###
 .claude/settings.local.json

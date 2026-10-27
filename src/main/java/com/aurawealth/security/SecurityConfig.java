@@ -33,7 +33,9 @@ public class SecurityConfig {
 			.sessionManagement((session) -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
 			.authorizeHttpRequests((auth) -> auth
 				.requestMatchers("/api/auth/**", "/error").permitAll()
-				.anyRequest().authenticated())
+				.requestMatchers("/api/**").authenticated()
+				// Everything outside /api is the React app's HTML, JS and CSS; the data stays behind /api
+				.anyRequest().permitAll())
 			.oauth2ResourceServer((resourceServer) -> resourceServer.jwt(Customizer.withDefaults()))
 			.build();
 	}
